@@ -4,7 +4,6 @@ import {Entity} from 'draft-js';
 import {
   getEntityRanges,
   BLOCK_TYPE,
-  ENTITY_TYPE,
   INLINE_STYLE,
 } from 'draft-js-utils';
 
@@ -25,14 +24,34 @@ const {
 const INDENT = '  ';
 const BREAK = '<br>';
 
+const ENTITY_TYPE = {
+  EMOJI: 'EMOJI',
+  IMAGE: 'IMAGE',
+  LINK: 'LINK'
+}
+
 // Map entity data to element attributes.
 const ENTITY_ATTR_MAP: AttrMap = {
-  [ENTITY_TYPE.LINK]: {url: 'href', rel: 'rel', target: 'target', title: 'title', className: 'class'},
+  [ENTITY_TYPE.EMOJI]: {src: 'src', height: 'height', width: 'width', alt: 'alt', className: 'class'},
   [ENTITY_TYPE.IMAGE]: {src: 'src', height: 'height', width: 'width', alt: 'alt', className: 'class'},
+  [ENTITY_TYPE.LINK]: {url: 'href', rel: 'rel', target: 'target', title: 'title', className: 'class'}
 };
 
 // Map entity data to element attributes.
 const DATA_TO_ATTR = {
+  [ENTITY_TYPE.EMOJI](entityType: string, entity: EntityInstance): StringMap {
+    let attrMap = ENTITY_ATTR_MAP.hasOwnProperty(entityType) ? ENTITY_ATTR_MAP[entityType] : {};
+    let data = entity.getData();
+    let attrs = {};
+    for (let dataKey of Object.keys(data)) {
+      let dataValue = data[dataKey];
+      if (attrMap.hasOwnProperty(dataKey)) {
+        let attrKey = attrMap[dataKey];
+        attrs[attrKey] = dataValue;
+      }
+    }
+    return attrs;
+  },
   [ENTITY_TYPE.LINK](entityType: string, entity: EntityInstance): StringMap {
     let attrMap = ENTITY_ATTR_MAP.hasOwnProperty(entityType) ? ENTITY_ATTR_MAP[entityType] : {};
     let data = entity.getData();
@@ -259,6 +278,10 @@ class MarkupGenerator {
         let strAttrs = stringifyAttrs(attrs);
         return `<a${strAttrs}>${content}</a>`;
       } else if (entityType != null && entityType === ENTITY_TYPE.IMAGE) {
+        let attrs = DATA_TO_ATTR.hasOwnProperty(entityType) ? DATA_TO_ATTR[entityType](entityType, entity) : null;
+        let strAttrs = stringifyAttrs(attrs);
+        return `<img${strAttrs}/>`;
+      } else if (entityType != null && entityType === ENTITY_TYPE.EMOJI) {
         let attrs = DATA_TO_ATTR.hasOwnProperty(entityType) ? DATA_TO_ATTR[entityType](entityType, entity) : null;
         let strAttrs = stringifyAttrs(attrs);
         return `<img${strAttrs}/>`;
